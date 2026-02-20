@@ -8,8 +8,8 @@ namespace NicoleGuard.Core.Scanning
 {
     public class FileScanner
     {
-        public event EventHandler<ScanResult> FileScanned;
-        public event EventHandler<string> ScanProgress;
+        public event EventHandler<ScanResult>? FileScanned;
+        public event EventHandler<string>? ScanProgress;
 
         public List<ScanResult> ScanDirectory(string directoryPath, CancellationToken cancellationToken)
         {
