@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NicoleGuard.Core", "NicoleG
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NicoleGuard.Data", "NicoleGuard.Data\NicoleGuard.Data.csproj", "{6945F61F-DD8F-45BD-904E-9070D9504102}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NicoleGuard.Tests", "NicoleGuard.Tests\NicoleGuard.Tests.csproj", "{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,18 @@ Global
 		{6945F61F-DD8F-45BD-904E-9070D9504102}.Release|x64.Build.0 = Release|Any CPU
 		{6945F61F-DD8F-45BD-904E-9070D9504102}.Release|x86.ActiveCfg = Release|Any CPU
 		{6945F61F-DD8F-45BD-904E-9070D9504102}.Release|x86.Build.0 = Release|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Debug|x64.Build.0 = Debug|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Debug|x86.Build.0 = Debug|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Release|x64.ActiveCfg = Release|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Release|x64.Build.0 = Release|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Release|x86.ActiveCfg = Release|Any CPU
+		{E3E9440C-3E5D-4D37-A6D7-E1F0E3BCA1F1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
