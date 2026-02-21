@@ -7,10 +7,12 @@ NicoleGuard is a personal Windows security scanner built with C# and WPF, demons
 ## Features
 
 - **File Scanner**: Recursively scans directories and computes SHA-256 hashes.
-- **Signature Detection**: Identifies known malicious hashes from a database (`bad_hashes.json`).
-- **Heuristic Detection**: Flags suspicious files based on heuristics (e.g., startup folder location, double extensions like `.pdf.exe`).
+- **Active Monitor**: Hooks into `FileSystemWatcher` to intercept and scan files the millisecond they are created.
+- **Advanced Heuristics**: Detects double extensions, Right-to-Left Override spoofing, and checks Windows Registry Run keys for persistence (`StartupScanner`).
+- **Signature Detection**: Identifies known malicious hashes from a database (`bad_hashes.json`), dynamically self-updating from GitHub via `SignatureUpdateService`.
+- **Exclusion Engine**: Optimizes scan performance by skipping user-defined ignored folders and extensions.
 - **Quarantine Manager**: Safely isolates detected threats to a secure directory with options to Restore or Delete.
-- **Automated Setup**: Automatically provisions configuration and database files to the user's `%AppData%` directory on the first launch.
+- **Antigravity UI**: Features a dynamic glowing `Storyboard` visualizer, Threat Gravity Scores (0-100), and on-the-fly Dark/Light theme switching.
 
 ## 📸 Screenshots
 
@@ -27,6 +29,7 @@ NicoleGuard implements a strict separation of concerns, ensuring the UI layer on
 ### Project Taxonomy
 
 NicoleGuard is split into three main areas:
+
 - `NicoleGuard.UI` – WPF desktop interface (Views, App initialization)
 - `NicoleGuard.Core` – Business logic (Scanning, Detection, Quarantine, Settings, Logging, Models)
 - `NicoleGuard.Data` – Initial file templates (`bad_hashes.json`, `settings.json`)
@@ -86,6 +89,7 @@ graph TD
 ### Storage
 
 On the first application run, NicoleGuard provisions its configuration folder at `%AppData%/NicoleGuard/`:
+
 - `bad_hashes.json` – known malicious hashes
 - `quarantine.json` – metadata database mapping original paths to quarantined files
 - `settings.json` – application configuration, such as the `LastScanFolder`
@@ -95,29 +99,35 @@ On the first application run, NicoleGuard provisions its configuration folder at
 ## 🛠️ Build and Usage Instructions
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/nicolefagan54/NicoleGuard-app.git
    cd NicoleGuard-app/NicoleGuard
    ```
 
 2. **Build the Solution**
+
    ```bash
    dotnet build
    ```
 
 3. **Run the Application**
+
    ```bash
    dotnet run --project NicoleGuard.UI
    ```
 
 4. **Run Unit Tests**
+
    ```bash
    dotnet test
    ```
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap & Changelog
 
-- [ ] **Background Scanning**: Implement `FileSystemWatcher` for real-time monitoring of specific folders (e.g., Downloads).
-- [ ] **Expanded Heuristics**: Add more complex behavioral signatures to `HeuristicEngine`.
-- [ ] **Cloud Signatures**: Periodically fetch updated threat hashes from a remote REST API.
-- [ ] **UI Polish**: Implement a custom dark theme with advanced progress animations.
+- [x] **Background Scanning**: Implemented `FileSystemWatcher` and `System.Timers` for real-time monitoring of active folders.
+- [x] **Expanded Heuristics**: Added complex behavioral signatures (RTLO spoofing, multiple extensions) and Registry Run key sniffing.
+- [x] **Cloud Signatures**: Added `SignatureUpdateService` to fetch fresh threat hashes from GitHub dynamically.
+- [x] **UI Polish**: Deployed "Antigravity Theme Engine" with a custom dark theme, glowing ring animations, and a Threat Gravity Score matrix.
+- [ ] **Machine Learning Heuristics**: Train an ML.NET model on file metadata to add intelligence beyond static signatures.
+- [ ] **Sandbox Analyzer**: Dynamically execute suspicious files in a safe environment to trace registry and network behavior patterns.
