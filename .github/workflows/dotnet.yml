@@ -1,0 +1,50 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Cache NuGet Packages
+      uses: actions/cache@v5.0.3
+      with:
+        # A list of files, directories, and wildcard patterns to cache and restore
+        path: ~/.nuget/packages
+        # An explicit key for restoring and saving the cache
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        # An ordered multiline string listing the prefix-matched keys, that are used for restoring stale cache if no cache hit occurred for key. Note `cache-hit` returns false in this case.
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+        # The chunk size used to split up large files during upload, in bytes
+        upload-chunk-size: 52428800
+        # An optional boolean when enabled, allows windows runners to save or restore caches that can be restored or saved respectively on other platforms
+        enableCrossOsArchive: false
+        # Fail the workflow if cache entry is not found
+        fail-on-cache-miss: false
+        # Check if a cache entry exists for the given input(s) (key, restore-keys) without downloading the cache
+        lookup-only: false
+        # Run the post step to save the cache even if another step before fails
+        save-always: true
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test --no-build --configuration Release --verbosity normal
