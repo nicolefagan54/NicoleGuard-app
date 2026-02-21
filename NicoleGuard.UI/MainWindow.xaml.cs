@@ -31,7 +31,17 @@ namespace NicoleGuard.UI
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "NicoleGuard");
 
-            var signatureEngine = new SignatureEngine(Path.Combine(dataFolder, "bad_hashes.json"));
+            Directory.CreateDirectory(dataFolder);
+
+            string badHashesPath = Path.Combine(dataFolder, "bad_hashes.json");
+            if (!File.Exists(badHashesPath))
+            {
+                // Create a default file with a sample hash (the provided EICAR string hash)
+                var json = @"{ ""bad_hashes"": [ ""c4d2b335c80cb7a7043031d60d5334e66b7df8d44a28b5291afdd0ada79ac393"" ] }";
+                File.WriteAllText(badHashesPath, json);
+            }
+
+            var signatureEngine = new SignatureEngine(badHashesPath);
             var heuristicEngine = new HeuristicEngine();
             _scanner = new FileScanner(signatureEngine, heuristicEngine);
             _quarantineManager = new QuarantineManager(dataFolder);
