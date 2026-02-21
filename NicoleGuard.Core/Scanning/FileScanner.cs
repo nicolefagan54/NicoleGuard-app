@@ -50,11 +50,23 @@ namespace NicoleGuard.Core.Scanning
                     new[] { sigResult.Reason, heurResult.Reason }
                     .Where(r => !string.IsNullOrWhiteSpace(r)));
 
+                // Primitive gravity score logic based on detection engines
+                int threatScore = 0;
+                if (sigResult.IsMalicious) threatScore += 80;
+                if (heurResult.IsMalicious) threatScore += 40;
+
+                // Cap at 100
+                threatScore = Math.Min(100, threatScore);
+
+                // If they both failed but the file was flagged somehow
+                if (isMalicious && threatScore == 0) threatScore = 50;
+
                 return new ScanResult
                 {
                     FilePath = filePath,
                     Hash = hash,
                     IsMalicious = isMalicious,
+                    ThreatGravityScore = threatScore,
                     DetectionReason = reason
                 };
             }

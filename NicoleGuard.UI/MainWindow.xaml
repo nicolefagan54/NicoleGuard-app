@@ -23,12 +23,19 @@
             <TextBlock x:Name="TxtStatus" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundBrush}"/>
         </StackPanel>
 
-        <DataGrid x:Name="GridResults" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True">
+        <DataGrid x:Name="GridResults" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True" 
+                  Background="{DynamicResource BackgroundBrush}" 
+                  Foreground="{DynamicResource ForegroundBrush}"
+                  RowBackground="{DynamicResource BackgroundBrush}"
+                  AlternatingRowBackground="#33000000"
+                  HorizontalGridLinesBrush="{DynamicResource AccentBrush}"
+                  VerticalGridLinesBrush="{DynamicResource AccentBrush}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="File" Binding="{Binding FilePath}" Width="*"/>
-                <DataGridTextColumn Header="Hash" Binding="{Binding Hash}" Width="2*"/>
-                <DataGridTextColumn Header="Malicious" Binding="{Binding IsMalicious}" Width="80"/>
-                <DataGridTextColumn Header="Reason" Binding="{Binding DetectionReason}" Width="2*"/>
+                <DataGridTextColumn Header="Hash" Binding="{Binding Hash}" Width="*"/>
+                <DataGridCheckBoxColumn Header="Malicious" Binding="{Binding IsMalicious}"/>
+                <DataGridTextColumn Header="Gravity Score" Binding="{Binding ThreatGravityScore}"/>
+                <DataGridTextColumn Header="Reason" Binding="{Binding DetectionReason}" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
 
