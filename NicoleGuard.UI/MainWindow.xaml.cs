@@ -19,6 +19,7 @@ namespace NicoleGuard.UI
         private readonly QuarantineManager _quarantineManager;
         private readonly SettingsService _settings;
         private readonly LogService _log;
+        private readonly PresetScanService _presetScan;
         private readonly ObservableCollection<ScanResult> _results = new();
 
         private string _currentFolder = string.Empty;
@@ -44,12 +45,17 @@ namespace NicoleGuard.UI
             var signatureEngine = new SignatureEngine(badHashesPath);
             var heuristicEngine = new HeuristicEngine();
             _scanner = new FileScanner(signatureEngine, heuristicEngine);
+            _presetScan = new PresetScanService(_scanner);
             _quarantineManager = new QuarantineManager(dataFolder);
             _settings = new SettingsService(dataFolder);
             _log = new LogService(dataFolder);
 
             _currentFolder = _settings.Current.LastScanFolder;
             GridResults.ItemsSource = _results;
+
+            // Apply saved theme
+            ((App)System.Windows.Application.Current).ApplyTheme(_settings.Current.ThemeMode);
+            CboTheme.Text = _settings.Current.ThemeMode;
         }
 
         private void BtnChooseFolder_Click(object sender, RoutedEventArgs e)
@@ -63,6 +69,25 @@ namespace NicoleGuard.UI
                 _settings.Save();
                 TxtStatus.Text = $"Selected: {_currentFolder}";
             }
+        }
+
+        private async void BtnShieldScan_Click(object sender, RoutedEventArgs e)
+        {
+            TxtStatus.Text = "Running Gravity Shield scan (Downloads, Desktop, Startup, Temp)...";
+            _results.Clear();
+
+            await Task.Run(() =>
+            {
+                var scanResults = _presetScan.RunShieldScan();
+                Dispatcher.Invoke(() =>
+                {
+                    foreach (var r in scanResults)
+                        _results.Add(r);
+                });
+            });
+
+            TxtStatus.Text = $"🛡️ Shield Scan complete. {_results.Count} files scanned.";
+            _log.Info($"Shield Scan completed, files: {_results.Count}");
         }
 
         private async void BtnScan_Click(object sender, RoutedEventArgs e)
@@ -113,6 +138,20 @@ namespace NicoleGuard.UI
         {
             var win = new Views.QuarantineWindow(_quarantineManager);
             win.ShowDialog();
+        }
+
+        private void CboTheme_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (CboTheme.SelectedItem is System.Windows.Controls.ComboBoxItem item)
+            {
+                var theme = item.Content.ToString();
+                if (theme != null)
+                {
+                    ((App)System.Windows.Application.Current).ApplyTheme(theme);
+                    _settings.Current.ThemeMode = theme;
+                    _settings.Save();
+                }
+            }
         }
     }
 }

@@ -1,7 +1,8 @@
 ﻿<Window x:Class="NicoleGuard.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="NicoleGuard" Height="450" Width="800">
+        Title="NicoleGuard - Antigravity Edition" Height="450" Width="800"
+        Background="{DynamicResource BackgroundBrush}">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -10,10 +11,15 @@
         </Grid.RowDefinitions>
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <Button x:Name="BtnShieldScan" Content="🛡️ Shield Scan" Width="100" Margin="0,0,10,0" Click="BtnShieldScan_Click" Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="Bold"/>
             <Button x:Name="BtnChooseFolder" Content="Choose Folder" Width="120" Margin="0,0,10,0" Click="BtnChooseFolder_Click"/>
             <Button x:Name="BtnScan" Content="Scan" Width="80" Margin="0,0,10,0" Click="BtnScan_Click"/>
-            <Button x:Name="BtnQuarantineWindow" Content="Quarantine" Width="100" Click="BtnQuarantineWindow_Click"/>
-            <TextBlock x:Name="TxtStatus" Margin="20,0,0,0" VerticalAlignment="Center"/>
+            <Button x:Name="BtnQuarantineWindow" Content="Quarantine" Width="100" Margin="0,0,10,0" Click="BtnQuarantineWindow_Click"/>
+            <ComboBox x:Name="CboTheme" Width="90" Margin="0,0,10,0" SelectionChanged="CboTheme_SelectionChanged">
+                <ComboBoxItem Content="DarkTheme"/>
+                <ComboBoxItem Content="LightTheme"/>
+            </ComboBox>
+            <TextBlock x:Name="TxtStatus" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundBrush}"/>
         </StackPanel>
 
         <DataGrid x:Name="GridResults" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True">
