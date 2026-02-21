@@ -21,6 +21,7 @@ namespace NicoleGuard.UI
         private readonly LogService _log;
         private readonly PresetScanService _presetScan;
         private readonly BackgroundScanService _backgroundScan;
+        private readonly ActiveMonitorService _activeMonitor;
         private readonly SignatureUpdateService _updateService;
         private readonly string _dataFolder;
         private readonly ObservableCollection<ScanResult> _results = new();
@@ -63,6 +64,19 @@ namespace NicoleGuard.UI
             if (_settings.Current.EnableBackgroundScan)
             {
                 _backgroundScan.Start();
+            }
+
+            _activeMonitor = new ActiveMonitorService(_scanner, _log);
+            _activeMonitor.OnThreatIntercepted += ActiveMonitor_OnThreatIntercepted;
+
+            if (_settings.Current.EnableActiveProtection)
+            {
+                _activeMonitor.StartMonitoring();
+                ChkActiveProtection.IsChecked = true;
+            }
+            else
+            {
+                ChkActiveProtection.IsChecked = false;
             }
 
             // Apply saved theme
@@ -175,6 +189,23 @@ namespace NicoleGuard.UI
                     presetField.SetValue(this, new PresetScanService(newScanner));
                 }
 
+                // Swap the reference in the Active Monitor
+                var monitorField = this.GetType().GetField("_activeMonitor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (monitorField != null)
+                {
+                    var oldMonitor = (ActiveMonitorService?)monitorField.GetValue(this);
+                    oldMonitor?.StopMonitoring();
+                    oldMonitor?.Dispose();
+
+                    var newMonitor = new ActiveMonitorService(newScanner, _log);
+                    newMonitor.OnThreatIntercepted += ActiveMonitor_OnThreatIntercepted;
+                    if (_settings.Current.EnableActiveProtection)
+                    {
+                        newMonitor.StartMonitoring();
+                    }
+                    monitorField.SetValue(this, newMonitor);
+                }
+
                 TxtStatus.Text = "Signatures successfully updated and reloaded.";
                 System.Windows.MessageBox.Show("Threat definitions have been updated from the cloud.", "Update Complete", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -212,6 +243,31 @@ namespace NicoleGuard.UI
             {
                 System.Windows.MessageBox.Show(message, "Antigravity Active Shield Alert", MessageBoxButton.OK, MessageBoxImage.Warning);
             });
+        }
+
+        private void ActiveMonitor_OnThreatIntercepted(object? sender, string message)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                System.Windows.MessageBox.Show(message, "Real-Time Intercept", MessageBoxButton.OK, MessageBoxImage.Error);
+            });
+        }
+
+        private void ChkActiveProtection_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            if (ChkActiveProtection.IsChecked == true)
+            {
+                _settings.Current.EnableActiveProtection = true;
+                _activeMonitor.StartMonitoring();
+                TxtStatus.Text = "Active Protection Enabled.";
+            }
+            else
+            {
+                _settings.Current.EnableActiveProtection = false;
+                _activeMonitor.StopMonitoring();
+                TxtStatus.Text = "Active Protection Disabled.";
+            }
+            _settings.Save();
         }
     }
 }

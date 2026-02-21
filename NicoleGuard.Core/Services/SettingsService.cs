@@ -8,6 +8,7 @@ namespace NicoleGuard.Core.Services
         public string LastScanFolder { get; set; } = string.Empty;
         public string ThemeMode { get; set; } = "DarkTheme";
         public bool EnableBackgroundScan { get; set; } = true;
+        public bool EnableActiveProtection { get; set; } = true;
     }
 
     public class SettingsService

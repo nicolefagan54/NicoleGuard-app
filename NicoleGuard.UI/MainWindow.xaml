@@ -20,6 +20,7 @@
                 <ComboBoxItem Content="DarkTheme"/>
                 <ComboBoxItem Content="LightTheme"/>
             </ComboBox>
+            <CheckBox x:Name="ChkActiveProtection" Content="Active Shield" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource ForegroundBrush}" Checked="ChkActiveProtection_CheckedChanged" Unchecked="ChkActiveProtection_CheckedChanged"/>
             <TextBlock x:Name="TxtStatus" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundBrush}"/>
         </StackPanel>
 
