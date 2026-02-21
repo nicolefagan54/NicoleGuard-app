@@ -20,6 +20,7 @@ namespace NicoleGuard.UI
         private readonly SettingsService _settings;
         private readonly LogService _log;
         private readonly PresetScanService _presetScan;
+        private readonly BackgroundScanService _backgroundScan;
         private readonly ObservableCollection<ScanResult> _results = new();
 
         private string _currentFolder = string.Empty;
@@ -52,6 +53,14 @@ namespace NicoleGuard.UI
 
             _currentFolder = _settings.Current.LastScanFolder;
             GridResults.ItemsSource = _results;
+
+            _backgroundScan = new BackgroundScanService(_scanner, _log, intervalMinutes: 10);
+            _backgroundScan.OnThreatFound += BackgroundScan_OnThreatFound;
+
+            if (_settings.Current.EnableBackgroundScan)
+            {
+                _backgroundScan.Start();
+            }
 
             // Apply saved theme
             ((App)System.Windows.Application.Current).ApplyTheme(_settings.Current.ThemeMode);
@@ -152,6 +161,15 @@ namespace NicoleGuard.UI
                     _settings.Save();
                 }
             }
+        }
+
+        private void BackgroundScan_OnThreatFound(object? sender, string message)
+        {
+            // The timer runs on a background thread, so we must marshal the MessageBox popup back to the UI thread
+            Dispatcher.Invoke(() =>
+            {
+                System.Windows.MessageBox.Show(message, "Antigravity Active Shield Alert", MessageBoxButton.OK, MessageBoxImage.Warning);
+            });
         }
     }
 }
