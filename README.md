@@ -134,4 +134,4 @@ On the first application run, NicoleGuard provisions its configuration folder at
 - [x] **Network Monitor**: Parsed `netstat` to map live TCP and UDP traffic (Local/Remote IP, Ports) directly back to the owning Process ID (PID).
 - [x] **Advanced UX**: Created a dedicated `SettingsWindow` interface, native Windows System Tray Toast Notifications (`NotifyIcon`), and Export-To-CSV/JSON reporting.
 - [x] **Machine Learning Heuristics**: Added `Microsoft.ML` integration to train an offline AI Binary Classifier model based on file characteristics (Shannon Entropy) to snag zero-day threats!
-- [ ] **Sandbox Analyzer**: Dynamically execute suspicious files in a safe environment to trace registry and network behavior patterns.
+- [x] **Sandbox Analyzer**: Engineered a true micro-virtualization layer using Windows Job Objects (`Kernel32.dll`) to execute highly suspicious files in an ultra-restricted, single-process sandbox UI environment.
