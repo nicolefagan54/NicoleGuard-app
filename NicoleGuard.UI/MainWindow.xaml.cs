@@ -143,7 +143,20 @@ namespace NicoleGuard.UI
                 PulseRing.Visibility = Visibility.Hidden;
             }
 
-            TxtStatus.Text = $"Scan complete. Found {_results.Count(x => x.IsMalicious)} threats out of {_results.Count} files.";
+            int threats = _results.Count(x => x.IsMalicious);
+            TxtStatus.Text = $"Scan complete. Found {threats} threats out of {_results.Count} files.";
+            
+            if (threats > 0)
+            {
+                var btn = (System.Windows.Controls.Button)this.FindName("BtnFixThreats");
+                if (btn != null) btn.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                var btn = (System.Windows.Controls.Button)this.FindName("BtnFixThreats");
+                if (btn != null) btn.Visibility = Visibility.Collapsed;
+            }
+
             _log.Info(TxtStatus.Text);
         }
 
@@ -174,6 +187,32 @@ namespace NicoleGuard.UI
         private void BtnScanStartup_Click(object sender, RoutedEventArgs e)
         {
             ExecuteScanInternal(() => _startupScanner.ScanStartupLocations());
+        }
+
+        private void BtnFixThreats_Click(object sender, RoutedEventArgs e)
+        {
+            var maliciousItems = _results.Where(r => r.IsMalicious).ToList();
+            int successCount = 0;
+
+            foreach (var item in maliciousItems)
+            {
+                try
+                {
+                    _quarantineManager.QuarantineFile(item.FilePath, item.DetectionReason);
+                    _results.Remove(item);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Failed to quarantine {item.FilePath}: {ex.Message}");
+                }
+            }
+
+            var btn = (System.Windows.Controls.Button)this.FindName("BtnFixThreats");
+            if (btn != null) btn.Visibility = Visibility.Collapsed;
+            
+            TxtStatus.Text = $"Quarantined {successCount} threats.";
+            System.Windows.MessageBox.Show($"Successfully isolated {successCount} threats to Quarantine.", "Threats Fixed", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
         }
 
         private async void BtnScan_Click(object sender, RoutedEventArgs e)

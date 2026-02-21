@@ -28,6 +28,8 @@
                 <Ellipse Fill="{DynamicResource AccentBrush}" Width="10" Height="10" />
             </Grid>
 
+            <Button x:Name="BtnFixThreats" Content="Fix Threats" Width="100" Margin="0,0,10,0" Click="BtnFixThreats_Click" Visibility="Collapsed" Background="#FF3333" Foreground="White"/>
+
             <TextBlock x:Name="TxtStatus" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource ForegroundBrush}"/>
         </StackPanel>
 
