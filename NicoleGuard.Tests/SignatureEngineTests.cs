@@ -43,7 +43,8 @@ namespace NicoleGuard.Tests
             
             var signatureEngine = new SignatureEngine(_badHashesFilePath);
             var heuristicEngine = new HeuristicEngine();
-            var scanner = new FileScanner(signatureEngine, heuristicEngine);
+            var settings = new Core.Services.SettingsService(_tempDirPath);
+            var scanner = new FileScanner(signatureEngine, heuristicEngine, settings);
 
             // Act
             var scanResult = scanner.ScanFile(eicarPath);
@@ -60,7 +61,8 @@ namespace NicoleGuard.Tests
             // Arrange
             var signatureEngine = new SignatureEngine(_badHashesFilePath);
             var heuristicEngine = new HeuristicEngine();
-            var scanner = new FileScanner(signatureEngine, heuristicEngine);
+            var settings = new Core.Services.SettingsService(_tempDirPath);
+            var scanner = new FileScanner(signatureEngine, heuristicEngine, settings);
             
             var safePath = Path.Combine(_tempDirPath, "safe_file.txt");
             File.WriteAllText(safePath, "Hello, world! I am a safe file.");

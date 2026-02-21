@@ -1,22 +1,25 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using NicoleGuard.Core.Models;
+using NicoleGuard.Core.Detection;
 
 namespace NicoleGuard.Core.Scanning
 {
     public class FileScanner
     {
-        private readonly Detection.SignatureEngine _signatureEngine;
-        private readonly Detection.HeuristicEngine _heuristicEngine;
+        private readonly SignatureEngine _signatureEngine;
+        private readonly HeuristicEngine _heuristicEngine;
+        private readonly Services.SettingsService _settings;
 
-        public FileScanner(Detection.SignatureEngine signatureEngine,
-                           Detection.HeuristicEngine heuristicEngine)
+        public FileScanner(SignatureEngine signatureEngine, HeuristicEngine heuristicEngine, Services.SettingsService settings)
         {
             _signatureEngine = signatureEngine;
             _heuristicEngine = heuristicEngine;
+            _settings = settings;
         }
 
         public IEnumerable<ScanResult> ScanFolder(string folderPath)
@@ -24,6 +27,11 @@ namespace NicoleGuard.Core.Scanning
             var results = new List<ScanResult>();
 
             if (!Directory.Exists(folderPath))
+                return results;
+
+            // Skip excluded folders
+            string dirName = new DirectoryInfo(folderPath).Name.ToLowerInvariant();
+            if (_settings.Current.ExcludedFolders.Any(f => f.ToLowerInvariant() == dirName))
                 return results;
 
             foreach (var file in Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories))
@@ -40,6 +48,11 @@ namespace NicoleGuard.Core.Scanning
         {
             try
             {
+                // Skip excluded extensions
+                string ext = Path.GetExtension(filePath).ToLowerInvariant();
+                if (_settings.Current.ExcludedExtensions.Contains(ext))
+                    return null;
+
                 string hash = ComputeSha256(filePath);
 
                 var sigResult = _signatureEngine.CheckHash(hash);

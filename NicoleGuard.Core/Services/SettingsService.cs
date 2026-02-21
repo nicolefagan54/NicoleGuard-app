@@ -9,6 +9,8 @@ namespace NicoleGuard.Core.Services
         public string ThemeMode { get; set; } = "DarkTheme";
         public bool EnableBackgroundScan { get; set; } = true;
         public bool EnableActiveProtection { get; set; } = true;
+        public string[] ExcludedExtensions { get; set; } = new[] { ".tmp", ".log", ".cache" };
+        public string[] ExcludedFolders { get; set; } = new[] { ".git", "node_modules", "bin", "obj" };
     }
 
     public class SettingsService

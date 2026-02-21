@@ -22,9 +22,11 @@ namespace NicoleGuard.UI
         private readonly PresetScanService _presetScan;
         private readonly BackgroundScanService _backgroundScan;
         private readonly ActiveMonitorService _activeMonitor;
+        private readonly StartupScanner _startupScanner;
         private readonly SignatureUpdateService _updateService;
         private readonly string _dataFolder;
         private readonly ObservableCollection<ScanResult> _results = new();
+        private System.Windows.Media.Animation.Storyboard? _pulseStoryboard;
 
         private string _currentFolder = string.Empty;
 
@@ -46,13 +48,16 @@ namespace NicoleGuard.UI
                 File.WriteAllText(badHashesPath, json);
             }
 
+            _settings = new SettingsService(_dataFolder);
+
+            _log = new LogService(_dataFolder);
+
             var signatureEngine = new SignatureEngine(badHashesPath);
             var heuristicEngine = new HeuristicEngine();
-            _scanner = new FileScanner(signatureEngine, heuristicEngine);
+            _scanner = new FileScanner(signatureEngine, heuristicEngine, _settings);
             _presetScan = new PresetScanService(_scanner);
+            _startupScanner = new StartupScanner(_scanner, _log);
             _quarantineManager = new QuarantineManager(_dataFolder);
-            _settings = new SettingsService(_dataFolder);
-            _log = new LogService(_dataFolder);
             _updateService = new SignatureUpdateService(_dataFolder, _log);
 
             _currentFolder = _settings.Current.LastScanFolder;
@@ -82,38 +87,93 @@ namespace NicoleGuard.UI
             // Apply saved theme
             ((App)System.Windows.Application.Current).ApplyTheme(_settings.Current.ThemeMode);
             CboTheme.Text = _settings.Current.ThemeMode;
+
+            CreatePulseAnimation();
+
+            TxtStatus.Text = "NicoleGuard is Ready!";
+            _log.Info("Application started successfully.");
         }
 
-        private void BtnChooseFolder_Click(object sender, RoutedEventArgs e)
+        private void CreatePulseAnimation()
+        {
+            _pulseStoryboard = new System.Windows.Media.Animation.Storyboard();
+            _pulseStoryboard.RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever;
+
+            var scaleX = new System.Windows.Media.Animation.DoubleAnimation(1, 4, TimeSpan.FromSeconds(1));
+            var scaleY = new System.Windows.Media.Animation.DoubleAnimation(1, 4, TimeSpan.FromSeconds(1));
+            var opacity = new System.Windows.Media.Animation.DoubleAnimation(1, 0, TimeSpan.FromSeconds(1));
+
+            System.Windows.Media.Animation.Storyboard.SetTarget(scaleX, PulseRing);
+            System.Windows.Media.Animation.Storyboard.SetTargetProperty(scaleX, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleX)"));
+
+            System.Windows.Media.Animation.Storyboard.SetTarget(scaleY, PulseRing);
+            System.Windows.Media.Animation.Storyboard.SetTargetProperty(scaleY, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleY)"));
+
+            System.Windows.Media.Animation.Storyboard.SetTarget(opacity, PulseRing);
+            System.Windows.Media.Animation.Storyboard.SetTargetProperty(opacity, new PropertyPath("Opacity"));
+
+            _pulseStoryboard.Children.Add(scaleX);
+            _pulseStoryboard.Children.Add(scaleY);
+            _pulseStoryboard.Children.Add(opacity);
+
+            PulseRing.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
+            PulseRing.RenderTransform = new System.Windows.Media.ScaleTransform(1, 1);
+        }
+
+        private async void ExecuteScanInternal(Func<IEnumerable<ScanResult>> scanAction)
+        {
+            TxtStatus.Text = "Scanning... Gravity Wave Active.";
+            _results.Clear();
+
+            if (_pulseStoryboard != null)
+            {
+                PulseRing.Visibility = Visibility.Visible;
+                _pulseStoryboard.Begin();
+            }
+
+            var scanResults = await Task.Run(scanAction);
+            foreach (var r in scanResults)
+            {
+                Dispatcher.Invoke(() => _results.Add(r));
+            }
+
+            if (_pulseStoryboard != null)
+            {
+                _pulseStoryboard.Stop();
+                PulseRing.Visibility = Visibility.Hidden;
+            }
+
+            TxtStatus.Text = $"Scan complete. Found {_results.Count(x => x.IsMalicious)} threats out of {_results.Count} files.";
+            _log.Info(TxtStatus.Text);
+        }
+
+        private void BtnScanFolder_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new System.Windows.Forms.FolderBrowserDialog();
             var result = dlg.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK)
             {
-                _currentFolder = dlg.SelectedPath;
-                _settings.Current.LastScanFolder = _currentFolder;
+                _settings.Current.LastScanFolder = dlg.SelectedPath;
                 _settings.Save();
-                TxtStatus.Text = $"Selected: {_currentFolder}";
+
+                TxtStatus.Text = $"Scanning {dlg.SelectedPath}...";
+                ExecuteScanInternal(() => _scanner.ScanFolder(dlg.SelectedPath));
             }
         }
 
-        private async void BtnShieldScan_Click(object sender, RoutedEventArgs e)
+        private void BtnChooseFolder_Click(object sender, RoutedEventArgs e)
         {
-            TxtStatus.Text = "Running Gravity Shield scan (Downloads, Desktop, Startup, Temp)...";
-            _results.Clear();
+            BtnScanFolder_Click(sender, e);
+        }
 
-            await Task.Run(() =>
-            {
-                var scanResults = _presetScan.RunShieldScan();
-                Dispatcher.Invoke(() =>
-                {
-                    foreach (var r in scanResults)
-                        _results.Add(r);
-                });
-            });
+        private void BtnShieldScan_Click(object sender, RoutedEventArgs e)
+        {
+            ExecuteScanInternal(() => _presetScan.RunShieldScan());
+        }
 
-            TxtStatus.Text = $"🛡️ Shield Scan complete. {_results.Count} files scanned.";
-            _log.Info($"Shield Scan completed, files: {_results.Count}");
+        private void BtnScanStartup_Click(object sender, RoutedEventArgs e)
+        {
+            ExecuteScanInternal(() => _startupScanner.ScanStartupLocations());
         }
 
         private async void BtnScan_Click(object sender, RoutedEventArgs e)
@@ -173,7 +233,7 @@ namespace NicoleGuard.UI
                 
                 // We must use reflection or a property injection to swap the engines,
                 // but for this simple architecture, we will just rebuild the scanner entirely.
-                var newScanner = new FileScanner(signatureEngine, heuristicEngine);
+                var newScanner = new FileScanner(signatureEngine, heuristicEngine, _settings);
                 
                 // Swap the reference in MainWindow
                 var scannerField = this.GetType().GetField("_scanner", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
