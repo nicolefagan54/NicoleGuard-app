@@ -349,6 +349,29 @@ namespace NicoleGuard.UI
             System.Windows.MessageBox.Show("Selected malicious files quarantined (if still present).");
         }
 
+        private void BtnRunSandbox_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = GridResults.SelectedItems.Cast<ScanResult>().ToList();
+            if (selected.Count == 0)
+            {
+                System.Windows.MessageBox.Show("Please select an executable from the scan results to sandbox.", "Sandbox Analyzer", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+
+            var item = selected.First();
+            string ext = System.IO.Path.GetExtension(item.FilePath).ToLowerInvariant();
+            
+            if (ext != ".exe" && ext != ".bat" && ext != ".cmd" && ext != ".ps1")
+            {
+                System.Windows.MessageBox.Show("The Sandbox Analyzer only supports executable files (.exe, .bat, etc).", "Sandbox Analyzer", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+
+            var win = new Views.SandboxWindow(item.FilePath, _log);
+            win.Owner = this;
+            win.ShowDialog();
+        }
+
         private async void BtnUpdateSignatures_Click(object sender, RoutedEventArgs e)
         {
             TxtStatus.Text = "Updating Threat Signatures from Cloud...";
