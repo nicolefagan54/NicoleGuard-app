@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using NicoleGuard.Core.Models;
 using NicoleGuard.Core.Detection;
+using NicoleGuard.Core.MachineLearning;
 
 namespace NicoleGuard.Core.Scanning
 {
@@ -14,12 +15,14 @@ namespace NicoleGuard.Core.Scanning
         private readonly SignatureEngine _signatureEngine;
         private readonly HeuristicEngine _heuristicEngine;
         private readonly Services.SettingsService _settings;
+        private readonly MalwareClassifier? _classifier;
 
-        public FileScanner(SignatureEngine signatureEngine, HeuristicEngine heuristicEngine, Services.SettingsService settings)
+        public FileScanner(SignatureEngine signatureEngine, HeuristicEngine heuristicEngine, Services.SettingsService settings, MalwareClassifier? classifier = null)
         {
             _signatureEngine = signatureEngine;
             _heuristicEngine = heuristicEngine;
             _settings = settings;
+            _classifier = classifier;
         }
 
         public IEnumerable<ScanResult> ScanFolder(string folderPath)
@@ -70,6 +73,20 @@ namespace NicoleGuard.Core.Scanning
 
                 // Cap at 100
                 threatScore = Math.Min(100, threatScore);
+
+                // ML.NET Artificial Intelligence Prediction
+                if (_classifier != null)
+                {
+                    var features = FeatureExtractor.ExtractFeatures(filePath);
+                    var prediction = _classifier.Predict(features);
+                    
+                    if (prediction.IsMalicious)
+                    {
+                        isMalicious = true;
+                        reason += $" | [AI Detection: ML.NET Prediction with Probability {prediction.Probability:P2}]";
+                        threatScore += (int)(prediction.Probability * 100); 
+                    }
+                }
 
                 // If they both failed but the file was flagged somehow
                 if (isMalicious && threatScore == 0) threatScore = 50;

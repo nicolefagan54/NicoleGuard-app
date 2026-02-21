@@ -10,6 +10,7 @@ using NicoleGuard.Core.Models;
 using NicoleGuard.Core.Quarantine;
 using NicoleGuard.Core.Scanning;
 using NicoleGuard.Core.Services;
+using NicoleGuard.Core.MachineLearning;
 
 namespace NicoleGuard.UI
 {
@@ -30,6 +31,7 @@ namespace NicoleGuard.UI
         private readonly ProcessMonitorService _procMonitor;
         private readonly NetworkMonitorService _netMonitor;
         private readonly Services.NotificationService _notifier;
+        private readonly MalwareClassifier _classifier;
 
         private string _currentFolder = string.Empty;
 
@@ -55,9 +57,14 @@ namespace NicoleGuard.UI
 
             _log = new LogService(_dataFolder);
 
+            var trainer = new ModelTrainer(_dataFolder, _log);
+            trainer.EnsureModelExists();
+            
+            _classifier = new MalwareClassifier(trainer.ModelPath, _log);
+
             var signatureEngine = new SignatureEngine(badHashesPath);
             var heuristicEngine = new HeuristicEngine();
-            _scanner = new FileScanner(signatureEngine, heuristicEngine, _settings);
+            _scanner = new FileScanner(signatureEngine, heuristicEngine, _settings, _classifier);
             _presetScan = new PresetScanService(_scanner);
             _startupScanner = new StartupScanner(_scanner, _log);
             _quarantineManager = new QuarantineManager(_dataFolder);
@@ -355,7 +362,7 @@ namespace NicoleGuard.UI
                 
                 // We must use reflection or a property injection to swap the engines,
                 // but for this simple architecture, we will just rebuild the scanner entirely.
-                var newScanner = new FileScanner(signatureEngine, heuristicEngine, _settings);
+                var newScanner = new FileScanner(signatureEngine, heuristicEngine, _settings, _classifier);
                 
                 // Swap the reference in MainWindow
                 var scannerField = this.GetType().GetField("_scanner", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);

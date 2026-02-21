@@ -129,6 +129,9 @@ On the first application run, NicoleGuard provisions its configuration folder at
 - [x] **Expanded Heuristics**: Added complex behavioral signatures (RTLO spoofing, multiple extensions) and Registry Run key sniffing.
 - [x] **Cloud Signatures**: Added `SignatureUpdateService` to fetch fresh threat hashes from GitHub dynamically.
 - [x] **UI Polish**: Deployed "Antigravity Theme Engine" with a custom dark theme, glowing ring animations, and a Threat Gravity Score matrix.
-- [ ] **Threat Resolution (Fix Threats)**: Add a one-click button to automatically quarantine all detected threats from the current scan results.
-- [ ] **Machine Learning Heuristics**: Train an ML.NET model on file metadata to add intelligence beyond static signatures.
+- [x] **Threat Resolution (Fix Threats)**: Added a one-click button to automatically quarantine all detected threats from the current scan results.
+- [x] **Process Monitor**: Specialized "Mini Task Manager" displaying active processes and validating Microsoft Authenticode Digital Signatures via `wintrust.dll` P/Invoke.
+- [x] **Network Monitor**: Parsed `netstat` to map live TCP and UDP traffic (Local/Remote IP, Ports) directly back to the owning Process ID (PID).
+- [x] **Advanced UX**: Created a dedicated `SettingsWindow` interface, native Windows System Tray Toast Notifications (`NotifyIcon`), and Export-To-CSV/JSON reporting.
+- [x] **Machine Learning Heuristics**: Added `Microsoft.ML` integration to train an offline AI Binary Classifier model based on file characteristics (Shannon Entropy) to snag zero-day threats!
 - [ ] **Sandbox Analyzer**: Dynamically execute suspicious files in a safe environment to trace registry and network behavior patterns.
