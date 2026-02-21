@@ -21,6 +21,8 @@ namespace NicoleGuard.UI
         private readonly LogService _log;
         private readonly PresetScanService _presetScan;
         private readonly BackgroundScanService _backgroundScan;
+        private readonly SignatureUpdateService _updateService;
+        private readonly string _dataFolder;
         private readonly ObservableCollection<ScanResult> _results = new();
 
         private string _currentFolder = string.Empty;
@@ -29,13 +31,13 @@ namespace NicoleGuard.UI
         {
             InitializeComponent();
 
-            string dataFolder = Path.Combine(
+            _dataFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "NicoleGuard");
 
-            Directory.CreateDirectory(dataFolder);
+            Directory.CreateDirectory(_dataFolder);
 
-            string badHashesPath = Path.Combine(dataFolder, "bad_hashes.json");
+            string badHashesPath = Path.Combine(_dataFolder, "bad_hashes.json");
             if (!File.Exists(badHashesPath))
             {
                 // Create a default file with a sample hash (the provided EICAR string hash)
@@ -47,9 +49,10 @@ namespace NicoleGuard.UI
             var heuristicEngine = new HeuristicEngine();
             _scanner = new FileScanner(signatureEngine, heuristicEngine);
             _presetScan = new PresetScanService(_scanner);
-            _quarantineManager = new QuarantineManager(dataFolder);
-            _settings = new SettingsService(dataFolder);
-            _log = new LogService(dataFolder);
+            _quarantineManager = new QuarantineManager(_dataFolder);
+            _settings = new SettingsService(_dataFolder);
+            _log = new LogService(_dataFolder);
+            _updateService = new SignatureUpdateService(_dataFolder, _log);
 
             _currentFolder = _settings.Current.LastScanFolder;
             GridResults.ItemsSource = _results;
@@ -141,6 +144,45 @@ namespace NicoleGuard.UI
             }
 
             System.Windows.MessageBox.Show("Selected malicious files quarantined (if still present).");
+        }
+
+        private async void BtnUpdateSignatures_Click(object sender, RoutedEventArgs e)
+        {
+            TxtStatus.Text = "Updating Threat Signatures from Cloud...";
+            bool success = await _updateService.UpdateSignaturesAsync();
+
+            if (success)
+            {
+                // Reinstantiate the scanner elements using the updated file
+                var signatureEngine = new SignatureEngine(Path.Combine(_dataFolder, "bad_hashes.json"));
+                var heuristicEngine = new HeuristicEngine();
+                
+                // We must use reflection or a property injection to swap the engines,
+                // but for this simple architecture, we will just rebuild the scanner entirely.
+                var newScanner = new FileScanner(signatureEngine, heuristicEngine);
+                
+                // Swap the reference in MainWindow
+                var scannerField = this.GetType().GetField("_scanner", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (scannerField != null)
+                {
+                    scannerField.SetValue(this, newScanner);
+                }
+
+                // Swap the reference in the Shield Scan service
+                var presetField = this.GetType().GetField("_presetScan", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (presetField != null)
+                {
+                    presetField.SetValue(this, new PresetScanService(newScanner));
+                }
+
+                TxtStatus.Text = "Signatures successfully updated and reloaded.";
+                System.Windows.MessageBox.Show("Threat definitions have been updated from the cloud.", "Update Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                TxtStatus.Text = "Failed to update signatures. Check logs.";
+                System.Windows.MessageBox.Show("Failed to download signature updates.", "Update Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void BtnQuarantineWindow_Click(object sender, RoutedEventArgs e)

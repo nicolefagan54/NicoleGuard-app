@@ -14,6 +14,7 @@
             <Button x:Name="BtnShieldScan" Content="🛡️ Shield Scan" Width="100" Margin="0,0,10,0" Click="BtnShieldScan_Click" Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="Bold"/>
             <Button x:Name="BtnChooseFolder" Content="Choose Folder" Width="120" Margin="0,0,10,0" Click="BtnChooseFolder_Click"/>
             <Button x:Name="BtnScan" Content="Scan" Width="80" Margin="0,0,10,0" Click="BtnScan_Click"/>
+            <Button x:Name="BtnUpdateSignatures" Content="⬇️ Update Signatures" Width="130" Margin="0,0,10,0" Click="BtnUpdateSignatures_Click"/>
             <Button x:Name="BtnQuarantineWindow" Content="Quarantine" Width="100" Margin="0,0,10,0" Click="BtnQuarantineWindow_Click"/>
             <ComboBox x:Name="CboTheme" Width="90" Margin="0,0,10,0" SelectionChanged="CboTheme_SelectionChanged">
                 <ComboBoxItem Content="DarkTheme"/>
