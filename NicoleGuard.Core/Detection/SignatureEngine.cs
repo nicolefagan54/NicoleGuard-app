@@ -1,62 +1,41 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
-using NicoleGuard.Core.Scanning;
+using NicoleGuard.Core.Models;
 
 namespace NicoleGuard.Core.Detection
 {
     public class SignatureEngine
     {
-        private readonly HashSet<string> _knownBadHashes;
+        private readonly HashSet<string> _badHashes = new();
 
-        public SignatureEngine(string hashDatabaseFilePath)
+        public SignatureEngine(string badHashesPath)
         {
-            _knownBadHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            LoadHashes(hashDatabaseFilePath);
-        }
-
-        private void LoadHashes(string filePath)
-        {
-            if (File.Exists(filePath))
+            if (File.Exists(badHashesPath))
             {
-                try
+                var json = File.ReadAllText(badHashesPath);
+                var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("bad_hashes", out var arr))
                 {
-                    var json = File.ReadAllText(filePath);
-                    using var doc = JsonDocument.Parse(json);
-                    if (doc.RootElement.TryGetProperty("bad_hashes", out var array))
+                    foreach (var el in arr.EnumerateArray())
                     {
-                        foreach (var item in array.EnumerateArray())
-                        {
-                            var hash = item.GetString();
-                            if (!string.IsNullOrEmpty(hash))
-                            {
-                                _knownBadHashes.Add(hash);
-                            }
-                        }
+                        var h = el.GetString();
+                        if (!string.IsNullOrWhiteSpace(h))
+                            _badHashes.Add(h.ToLowerInvariant());
                     }
                 }
-                catch
-                {
-                    // Ignore load errors for this simple version
-                }
             }
         }
 
-        public bool Analyze(ScanResult result)
+        public DetectionResult CheckHash(string hash)
         {
-            if (string.IsNullOrEmpty(result.SHA256Hash))
-                return false;
+            if (string.IsNullOrWhiteSpace(hash))
+                return DetectionResult.Clean();
 
-            if (_knownBadHashes.Contains(result.SHA256Hash))
-            {
-                result.IsThreat = true;
-                result.ThreatType = "Signature";
-                result.ThreatName = "Known Malicious Hash";
-                return true;
-            }
+            if (_badHashes.Contains(hash.ToLowerInvariant()))
+                return DetectionResult.Malicious("Signature match");
 
-            return false;
+            return DetectionResult.Clean();
         }
     }
 }

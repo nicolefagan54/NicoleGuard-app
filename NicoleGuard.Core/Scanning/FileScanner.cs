@@ -1,77 +1,79 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
-using System.Threading;
+using System.Text;
+using NicoleGuard.Core.Models;
 
 namespace NicoleGuard.Core.Scanning
 {
     public class FileScanner
     {
-        public event EventHandler<ScanResult>? FileScanned;
-        public event EventHandler<string>? ScanProgress;
+        private readonly Detection.SignatureEngine _signatureEngine;
+        private readonly Detection.HeuristicEngine _heuristicEngine;
 
-        public List<ScanResult> ScanDirectory(string directoryPath, CancellationToken cancellationToken)
+        public FileScanner(Detection.SignatureEngine signatureEngine,
+                           Detection.HeuristicEngine heuristicEngine)
+        {
+            _signatureEngine = signatureEngine;
+            _heuristicEngine = heuristicEngine;
+        }
+
+        public IEnumerable<ScanResult> ScanFolder(string folderPath)
         {
             var results = new List<ScanResult>();
-            if (!Directory.Exists(directoryPath))
-            {
+
+            if (!Directory.Exists(folderPath))
                 return results;
-            }
 
-            try
+            foreach (var file in Directory.EnumerateFiles(folderPath, "*", SearchOption.AllDirectories))
             {
-                var files = Directory.GetFiles(directoryPath, "*", SearchOption.AllDirectories);
-                foreach (var file in files)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
-
-                    ScanProgress?.Invoke(this, $"Scanning: {file}");
-                    var scanResult = ScanFile(file);
-                    results.Add(scanResult);
-                    FileScanned?.Invoke(this, scanResult);
-                }
-            }
-            catch (UnauthorizedAccessException)
-            {
-                ScanProgress?.Invoke(this, $"Access denied: {directoryPath}");
-            }
-            catch (Exception ex)
-            {
-                ScanProgress?.Invoke(this, $"Error scanning directory: {ex.Message}");
+                ScanResult? result = ScanFile(file);
+                if (result != null)
+                    results.Add(result);
             }
 
             return results;
         }
 
-        public ScanResult ScanFile(string filePath)
+        public ScanResult? ScanFile(string filePath)
         {
-            var result = new ScanResult
-            {
-                FilePath = filePath
-            };
-
             try
             {
-                var fileInfo = new FileInfo(filePath);
-                result.FileSizeBytes = fileInfo.Length;
+                string hash = ComputeSha256(filePath);
 
-                using (var sha256 = SHA256.Create())
+                var sigResult = _signatureEngine.CheckHash(hash);
+                var heurResult = _heuristicEngine.Evaluate(filePath);
+
+                bool isMalicious = sigResult.IsMalicious || heurResult.IsMalicious;
+                string reason = string.Join(" | ",
+                    new[] { sigResult.Reason, heurResult.Reason }
+                    .Where(r => !string.IsNullOrWhiteSpace(r)));
+
+                return new ScanResult
                 {
-                    using (var stream = File.OpenRead(filePath))
-                    {
-                        var hashBytes = sha256.ComputeHash(stream);
-                        result.SHA256Hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                    }
-                }
+                    FilePath = filePath,
+                    Hash = hash,
+                    IsMalicious = isMalicious,
+                    DetectionReason = reason
+                };
             }
-            catch (Exception ex)
+            catch
             {
-                result.ErrorMessage = ex.Message;
+                // Access denied, locked file, etc. – ignore for now or log.
+                return null;
             }
+        }
 
-            return result;
+        private static string ComputeSha256(string filePath)
+        {
+            using var stream = File.OpenRead(filePath);
+            using var sha = SHA256.Create();
+            var hashBytes = sha.ComputeHash(stream);
+            var sb = new StringBuilder();
+            foreach (var b in hashBytes)
+                sb.Append(b.ToString("x2"));
+            return sb.ToString();
         }
     }
 }

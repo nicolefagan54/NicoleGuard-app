@@ -1,138 +1,94 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using NicoleGuard.Core.Models;
 
 namespace NicoleGuard.Core.Quarantine
 {
-    public class QuarantinedFile
-    {
-        public string OriginalPath { get; set; } = string.Empty;
-        public string QuarantinePath { get; set; } = string.Empty;
-        public DateTime QuarantinedAt { get; set; }
-        public string ThreatName { get; set; } = string.Empty;
-    }
-
     public class QuarantineManager
     {
-        private readonly string _quarantineDirectory;
-        private readonly string _metaDataPath;
-        private List<QuarantinedFile> _quarantinedFiles;
+        private readonly string _quarantineFolder;
+        private readonly string _quarantineDbPath;
+        private List<QuarantinedItem> _items = new();
 
-        public QuarantineManager(string dataDirectory)
+        public QuarantineManager(string baseDataFolder)
         {
-            _quarantineDirectory = Path.Combine(dataDirectory, "QuarantineFiles");
-            _metaDataPath = Path.Combine(dataDirectory, "quarantine.json");
-            _quarantinedFiles = new List<QuarantinedFile>();
+            _quarantineFolder = Path.Combine(baseDataFolder, "Quarantine");
+            Directory.CreateDirectory(_quarantineFolder);
 
-            if (!Directory.Exists(_quarantineDirectory))
-            {
-                Directory.CreateDirectory(_quarantineDirectory);
-            }
-
-            LoadMetadata();
+            _quarantineDbPath = Path.Combine(baseDataFolder, "quarantine.json");
+            Load();
         }
 
-        private void LoadMetadata()
+        public IReadOnlyList<QuarantinedItem> Items => _items;
+
+        public QuarantinedItem? QuarantineFile(string filePath, string reason)
         {
-            if (File.Exists(_metaDataPath))
+            if (!File.Exists(filePath))
+                return null;
+
+            var fileName = Path.GetFileName(filePath);
+            var destPath = Path.Combine(_quarantineFolder, $"{Guid.NewGuid()}_{fileName}");
+
+            File.Move(filePath, destPath);
+
+            var item = new QuarantinedItem
             {
-                try
-                {
-                    var json = File.ReadAllText(_metaDataPath);
-                    _quarantinedFiles = JsonSerializer.Deserialize<List<QuarantinedFile>>(json) ?? new List<QuarantinedFile>();
-                }
-                catch
-                {
-                    _quarantinedFiles = new List<QuarantinedFile>();
-                }
-            }
+                OriginalPath = filePath,
+                QuarantinePath = destPath,
+                Reason = reason
+            };
+
+            _items.Add(item);
+            Save();
+            return item;
         }
 
-        private void SaveMetadata()
+        public bool Restore(string id)
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_quarantinedFiles, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_metaDataPath, json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error saving quarantine metadata: {ex.Message}");
-            }
-        }
-
-        public bool Quarantine(string originalFilePath, string threatName)
-        {
-            if (!File.Exists(originalFilePath)) return false;
-
-            try
-            {
-                var safeFileName = Guid.NewGuid().ToString() + ".qtz";
-                var quarantinePath = Path.Combine(_quarantineDirectory, safeFileName);
-
-                File.Move(originalFilePath, quarantinePath);
-
-                var record = new QuarantinedFile
-                {
-                    OriginalPath = originalFilePath,
-                    QuarantinePath = quarantinePath,
-                    QuarantinedAt = DateTime.Now,
-                    ThreatName = threatName
-                };
-
-                _quarantinedFiles.Add(record);
-                SaveMetadata();
-                return true;
-            }
-            catch
-            {
+            var item = _items.FirstOrDefault(i => i.Id == id);
+            if (item == null || !File.Exists(item.QuarantinePath))
                 return false;
-            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(item.OriginalPath)!);
+            File.Move(item.QuarantinePath, item.OriginalPath, overwrite: true);
+            _items.Remove(item);
+            Save();
+            return true;
         }
 
-        public List<QuarantinedFile> GetQuarantinedFiles() => _quarantinedFiles;
-
-        public bool Restore(QuarantinedFile fileRecord)
+        public bool Delete(string id)
         {
-            if (!File.Exists(fileRecord.QuarantinePath)) return false;
-
-            try
-            {
-                var directory = Path.GetDirectoryName(fileRecord.OriginalPath);
-                if (directory != null && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-
-                File.Move(fileRecord.QuarantinePath, fileRecord.OriginalPath);
-                _quarantinedFiles.Remove(fileRecord);
-                SaveMetadata();
-                return true;
-            }
-            catch
-            {
+            var item = _items.FirstOrDefault(i => i.Id == id);
+            if (item == null)
                 return false;
-            }
+
+            if (File.Exists(item.QuarantinePath))
+                File.Delete(item.QuarantinePath);
+
+            _items.Remove(item);
+            Save();
+            return true;
         }
 
-        public bool Delete(QuarantinedFile fileRecord)
+        private void Load()
         {
-            if (File.Exists(fileRecord.QuarantinePath))
+            if (!File.Exists(_quarantineDbPath))
             {
-                try
-                {
-                    File.Delete(fileRecord.QuarantinePath);
-                    _quarantinedFiles.Remove(fileRecord);
-                    SaveMetadata();
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
+                _items = new List<QuarantinedItem>();
+                return;
             }
-            return false;
+
+            var json = File.ReadAllText(_quarantineDbPath);
+            _items = JsonSerializer.Deserialize<List<QuarantinedItem>>(json) ?? new List<QuarantinedItem>();
+        }
+
+        private void Save()
+        {
+            var json = JsonSerializer.Serialize(_items, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_quarantineDbPath, json);
         }
     }
 }
