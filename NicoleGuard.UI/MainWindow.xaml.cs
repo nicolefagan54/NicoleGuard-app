@@ -27,6 +27,9 @@ namespace NicoleGuard.UI
         private readonly string _dataFolder;
         private readonly ObservableCollection<ScanResult> _results = new();
         private System.Windows.Media.Animation.Storyboard? _pulseStoryboard;
+        private readonly ProcessMonitorService _procMonitor;
+        private readonly NetworkMonitorService _netMonitor;
+        private readonly Services.NotificationService _notifier;
 
         private string _currentFolder = string.Empty;
 
@@ -59,6 +62,9 @@ namespace NicoleGuard.UI
             _startupScanner = new StartupScanner(_scanner, _log);
             _quarantineManager = new QuarantineManager(_dataFolder);
             _updateService = new SignatureUpdateService(_dataFolder, _log);
+            _procMonitor = new ProcessMonitorService(new SignatureVerificationService(), _log);
+            _netMonitor = new NetworkMonitorService(_log);
+            _notifier = new Services.NotificationService();
 
             _currentFolder = _settings.Current.LastScanFolder;
             GridResults.ItemsSource = _results;
@@ -150,11 +156,13 @@ namespace NicoleGuard.UI
             {
                 var btn = (System.Windows.Controls.Button)this.FindName("BtnFixThreats");
                 if (btn != null) btn.Visibility = Visibility.Visible;
+                _notifier.ShowNotification("Scan Complete", $"Found {threats} threats. Click Fix Threats to quarantine.", System.Windows.Forms.ToolTipIcon.Warning);
             }
             else
             {
                 var btn = (System.Windows.Controls.Button)this.FindName("BtnFixThreats");
                 if (btn != null) btn.Visibility = Visibility.Collapsed;
+                _notifier.ShowNotification("Scan Complete", "No threats found. Your system is safe.", System.Windows.Forms.ToolTipIcon.Info);
             }
 
             _log.Info(TxtStatus.Text);
@@ -212,7 +220,82 @@ namespace NicoleGuard.UI
             if (btn != null) btn.Visibility = Visibility.Collapsed;
             
             TxtStatus.Text = $"Quarantined {successCount} threats.";
+            _notifier.ShowNotification("Threats Resolved", $"Successfully isolated {successCount} threats to Quarantine.");
             System.Windows.MessageBox.Show($"Successfully isolated {successCount} threats to Quarantine.", "Threats Fixed", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        }
+
+        private void BtnProcMon_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new Views.ProcessMonitorWindow(_procMonitor, _netMonitor);
+            win.Owner = this;
+            win.ShowDialog();
+        }
+
+        private void BtnSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new Views.SettingsWindow(_settings);
+            win.Owner = this;
+            win.ShowDialog();
+        }
+
+        private void BtnExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (_results.Count == 0)
+            {
+                System.Windows.MessageBox.Show("No scan results to export.", "Export", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+            
+            var json = System.Text.Json.JsonSerializer.Serialize(_results, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                FileName = $"NicoleGuard_Report_{DateTime.Now:yyyyMMdd_HHmmss}.json",
+                DefaultExt = ".json",
+                Filter = "JSON Files (*.json)|*.json|CSV Files (*.csv)|*.csv|Text Files (*.txt)|*.txt"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    if (dialog.FileName.EndsWith(".csv"))
+                    {
+                        var csv = new System.Text.StringBuilder();
+                        csv.AppendLine("FilePath,IsMalicious,ThreatGravityScore,DetectionReason");
+                        foreach (var r in _results)
+                        {
+                            csv.AppendLine($"\"{r.FilePath}\",{r.IsMalicious},{r.ThreatGravityScore},\"{r.DetectionReason}\"");
+                        }
+                        System.IO.File.WriteAllText(dialog.FileName, csv.ToString());
+                    }
+                    else if (dialog.FileName.EndsWith(".txt"))
+                    {
+                        var txt = new System.Text.StringBuilder();
+                        txt.AppendLine("NicoleGuard Scan Report");
+                        txt.AppendLine($"Generated: {DateTime.Now}");
+                        txt.AppendLine("-----------------------");
+                        foreach (var r in _results)
+                        {
+                            txt.AppendLine($"File: {r.FilePath}");
+                            txt.AppendLine($"Status: {(r.IsMalicious ? "MALICIOUS" : "Clean")} (Score: {r.ThreatGravityScore})");
+                            if (r.IsMalicious) txt.AppendLine($"Reason: {r.DetectionReason}");
+                            txt.AppendLine();
+                        }
+                        System.IO.File.WriteAllText(dialog.FileName, txt.ToString());
+                    }
+                    else
+                    {
+                        System.IO.File.WriteAllText(dialog.FileName, json);
+                    }
+                    
+                    System.Windows.MessageBox.Show($"Report successfully exported to:\n{dialog.FileName}", "Export Complete", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Failed to export report:\n{ex.Message}", "Export Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+            }
         }
 
         private async void BtnScan_Click(object sender, RoutedEventArgs e)

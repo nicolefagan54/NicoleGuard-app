@@ -1,0 +1,33 @@
+<Window x:Class="NicoleGuard.UI.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="NicoleGuard Settings" Height="400" Width="500"
+        Background="{DynamicResource BackgroundBrush}" Foreground="{DynamicResource ForegroundBrush}">
+    <Grid Margin="20">
+        <StackPanel>
+            <TextBlock Text="Settings &amp; Exclusions" FontSize="20" FontWeight="Bold" Margin="0,0,0,20" Foreground="{DynamicResource AccentBrush}"/>
+            
+            <!-- Appearance -->
+            <TextBlock Text="Appearance" FontWeight="Bold" Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                <TextBlock Text="Theme:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <ComboBox x:Name="CboTheme" Width="120" SelectionChanged="CboTheme_SelectionChanged">
+                    <ComboBoxItem Content="Dark"/>
+                    <ComboBoxItem Content="Light"/>
+                </ComboBox>
+            </StackPanel>
+
+            <!-- Exclusions -->
+            <TextBlock Text="Exclusions" FontWeight="Bold" Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                <TextBlock Text="New Extension:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBox x:Name="TxtExt" Width="80" Margin="0,0,10,0"/>
+                <Button x:Name="BtnAddExt" Content="Add to Exclusions" Width="120" Click="BtnAddExt_Click"/>
+            </StackPanel>
+            
+            <ListBox x:Name="ListExclusions" Height="100" Margin="0,0,0,10" Background="{DynamicResource SurfaceBrush}" Foreground="{DynamicResource ForegroundBrush}"/>
+
+            <Button x:Name="BtnSave" Content="Save Settings" Width="120" HorizontalAlignment="Right" Click="BtnSave_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
