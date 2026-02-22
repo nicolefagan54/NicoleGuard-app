@@ -20,7 +20,7 @@ NicoleGuard is a personal Windows security scanner built with C# and WPF, demons
 
 | Main Dashboard | Quarantine Manager |
 |:---:|:---:|
-| <img src="https://via.placeholder.com/400x250?text=MainWindow.xaml" alt="Main View" height="250"/> | <img src="https://via.placeholder.com/400x250?text=QuarantineWindow.xaml" alt="Quarantine View" height="250"/> |
+| <img src="Screenshots/main_dashboard.png" alt="Main View" height="250"/> | <img src="https://via.placeholder.com/400x250?text=QuarantineWindow.xaml" alt="Quarantine View" height="250"/> |
 
 ## Architecture
 
